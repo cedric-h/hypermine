@@ -130,24 +130,27 @@ impl Sim {
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
 
-            const MAGIC: u32 = 1_000_081;
-            let mut rd = ((cube as u32) + 20 * u32::from(node)) % MAGIC; // Pseudorandom value to fill chunk with
-            const GAP: usize = 0;
-            const XGAP: usize = (SUBDIVISION_FACTOR - 1) / 2; // dodeca::Side::A will always correspond to the x coordinate, so let`s flatten it in this direction
-            for z in GAP..(SUBDIVISION_FACTOR - GAP) {
-                for y in GAP..(SUBDIVISION_FACTOR - GAP) {
-                    for x in XGAP..(SUBDIVISION_FACTOR - XGAP) {
-                        rd = (37 * rd + 1) % MAGIC;
-                        data[(x + 1)
+            const SUBDIVISION_FACTOR: usize = 24;
+            for z in 0..SUBDIVISION_FACTOR {
+                use std::f32::consts::PI;
+                let s = SUBDIVISION_FACTOR as f32 - 2.0;
+                let o = s;
+                let w = ((PI*2.0 * (z as f32/o)).sin()*(o/2.0) + (o/2.0)) as usize;
+
+                for mut y in 0..w {
+                    y = (SUBDIVISION_FACTOR as i32/2 + (w as i32/2 - y as i32)) as usize;
+                    for mut x in 0..w {
+                        x = (SUBDIVISION_FACTOR as i32/2 + (w as i32/2 - x as i32)) as usize;
+
+                        let i = (x + 1)
                             + (y + 1) * (SUBDIVISION_FACTOR + 2)
-                            + (z + 1) * (SUBDIVISION_FACTOR + 2).pow(2)] = if rd % 4 == 1 {
-                            Material::Stone
-                        } else if rd % 4 == 2 {
-                            Material::Dirt
-                        } else if rd % 4 == 3 {
-                            Material::Sand
-                        } else {
-                            Material::Void
+                            + (z + 1) * (SUBDIVISION_FACTOR + 2).pow(2);
+
+                        data[i] = match z % 3 {
+                            0 => Material::Dirt,
+                            1 => Material::Stone,
+                            2 => Material::Sand,
+                            _ => Material::Void,
                         };
                     }
                 }
