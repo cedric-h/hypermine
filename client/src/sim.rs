@@ -130,27 +130,31 @@ impl Sim {
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
 
-            const SUBDIVISION_FACTOR: usize = 24;
-            for z in 0..SUBDIVISION_FACTOR {
-                use std::f32::consts::PI;
-                let s = SUBDIVISION_FACTOR as f32 - 2.0;
-                let o = s;
-                let w = ((PI*2.0 * (z as f32/o)).sin()*(o/2.0) + (o/2.0)) as usize;
+            const S: usize = SUBDIVISION_FACTOR;
+            for z in 0..S {
 
-                for mut y in 0..w {
-                    y = (SUBDIVISION_FACTOR as i32/2 + (w as i32/2 - y as i32)) as usize;
-                    for mut x in 0..w {
-                        x = (SUBDIVISION_FACTOR as i32/2 + (w as i32/2 - x as i32)) as usize;
+                for y in 0..S {
+                    for x in 0..S {
 
                         let i = (x + 1)
-                            + (y + 1) * (SUBDIVISION_FACTOR + 2)
-                            + (z + 1) * (SUBDIVISION_FACTOR + 2).pow(2);
+                            + (y + 1) * (S + 2)
+                            + (z + 1) * (S + 2).pow(2);
 
-                        data[i] = match z % 3 {
-                            0 => Material::Dirt,
-                            1 => Material::Stone,
-                            2 => Material::Sand,
-                            _ => Material::Void,
+                        const R: usize = S - 1;
+                        let sides = 
+                               ((x == 0 || x == R) && (y == 0 || y == R))
+                            || ((y == 0 || y == R) && (z == 0 || z == R))
+                            || ((z == 0 || z == R) && (x == 0 || x == R));
+
+                        let y_wrap = ((S as i32/2 - y as i32).abs() as f32/2.0).round() as usize;
+                        let center_x = ((S as i32/2 - x as i32).abs() as f32/2.0).round() as usize == y_wrap
+                            && y_wrap == ((S as i32/2 - z as i32).abs() as f32/2.0).round() as usize;
+
+                        data[i] = match (sides, center_x) {
+                            (true, false) => Material::Stone,
+                            (false, true) => Material::Sand,
+                            (true, true)  => Material::Dirt,
+                            _             => Material::Void,
                         };
                     }
                 }
